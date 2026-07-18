@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "735116200992",
+    "project_id": "asan-head-count-app",
+    "storage_bucket": "asan-head-count-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:735116200992:android:a2c800794a1c1a3e3a8045",
+        "android_client_info": {
+          "package_name": "com.example.asan_evac_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXF65Szq-gPtBbypZrzG8LSlINmJBSEN0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
