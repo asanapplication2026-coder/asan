@@ -98,4 +98,15 @@ class AuthService {
   }
 
   Stream<AuthState> get authStateChanges => supabase.auth.onAuthStateChange;
+
+  /// Persists the device's FCM token against the signed-in user's
+  /// profile row. Needed so section-scoped chat notifications can be
+  /// targeted at specific recipients (topic broadcast alone can't do
+  /// that). No-ops if there's no signed-in user.
+  Future<void> updateFcmToken(String token) async {
+    final uid = currentUser?.id;
+    if (uid == null) return;
+
+    await supabase.from('profiles').update({'fcm_token': token}).eq('id', uid);
+  }
 }

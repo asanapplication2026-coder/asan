@@ -78,6 +78,18 @@ class PushNotificationService {
     return settings.authorizationStatus;
   }
 
+  /// The device's current FCM registration token, or null if
+  /// permission hasn't been granted / APNs isn't ready yet on iOS.
+  /// Callers (AuthController) persist this against profiles.fcm_token
+  /// so section-scoped chat push can target specific recipients —
+  /// this class stays a plain FCM wrapper and doesn't touch Supabase
+  /// itself.
+  Future<String?> getToken() => _messaging.getToken();
+
+  /// Fires whenever FCM rotates the device token (app reinstall, data
+  /// clear, token expiry). Callers should re-persist the new value.
+  Stream<String> get onTokenRefresh => _messaging.onTokenRefresh;
+
   /// Triggers the actual OS permission dialog (only shows anything if
   /// the user hasn't decided yet — otherwise it just returns the
   /// existing status) and, if granted, subscribes to the shared topic.
