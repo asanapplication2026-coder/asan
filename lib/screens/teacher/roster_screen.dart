@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/roster_controller.dart';
+import '../../controllers/admin/roster_controller.dart';
 import '../../models/section.dart';
 
 class RosterScreen extends StatelessWidget {

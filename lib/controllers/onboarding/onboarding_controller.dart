@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/local_storage_service.dart';
-import '../screens/root_router.dart';
+import '../../services/local_storage_service.dart';
+import '../../screens/root_router.dart';
 
 class OnboardingPageData {
   final IconData icon;

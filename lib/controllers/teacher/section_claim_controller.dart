@@ -1,10 +1,10 @@
 import 'package:get/get.dart';
-import '../services/drill_service.dart';
-import '../services/section_service.dart';
-import '../models/drill_event.dart';
-import '../models/section.dart';
-import '../models/section_claim.dart';
-import 'auth_controller.dart';
+import '../../services/drill_service.dart';
+import '../../services/section_service.dart';
+import '../../models/drill_event.dart';
+import '../../models/section.dart';
+import '../../models/section_claim.dart';
+import '../auth/auth_controller.dart';
 
 /// Backs the "pick a section to handle during this drill" screen.
 /// Loads EVERY section in the school (not just ones this teacher
@@ -52,6 +52,7 @@ class SectionClaimController extends GetxController {
     }
   }
 
+  @override
   Future<void> refresh() => _load();
 
   SectionClaim? claimFor(String sectionId) {

@@ -2,9 +2,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/auth_service.dart';
-import '../services/push_notification_service.dart';
-import '../models/app_profile.dart';
+import '../../services/auth_service.dart';
+import '../../services/push_notification_service.dart';
+import '../../models/app_profile.dart';
 
 class AuthController extends GetxController {
   final _authService = AuthService();

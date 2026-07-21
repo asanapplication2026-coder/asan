@@ -1,12 +1,12 @@
+import 'package:asan_evac_app/screens/teacher/drill_sectio_select_screen.dart';
+import 'package:asan_evac_app/screens/widgets/phone_registration_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/teacher_section_controller.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/teacher/teacher_section_controller.dart';
+import '../../controllers/auth/auth_controller.dart';
 import '../../services/drill_service.dart';
 import '../../models/drill_event.dart';
 import '../../models/section.dart';
-import '../widgets/phone_registration_dialog.dart';
-import 'drill_sectio_select_screen.dart';
 import 'roster_screen.dart';
 import 'teacher_roster_screen.dart';
 
@@ -133,7 +133,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         if (controller.mySections.isEmpty) {
           return Column(
             children: [
-              if (drillBanner != null) drillBanner,
+              ?drillBanner,
               const Expanded(
                 child: Center(
                   child: Padding(

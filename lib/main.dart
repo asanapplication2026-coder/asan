@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'app.dart';
 import 'services/supabase_client.dart';
 import 'services/local_storage_service.dart';
-import 'controllers/auth_controller.dart';
+import 'controllers/auth/auth_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure native bindings are initialized

@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
 /// Mirrors the `public.headcount_status` Postgres enum exactly — keep
-/// these four values in sync with the DB if that enum ever changes.
+/// these five values in sync with the DB if that enum ever changes.
+///
+/// ⚠️ 'absent' requires the 2026_07_headcount_status_absent.sql
+/// migration (`alter type public.headcount_status add value 'absent';`)
+/// to have actually been run — if it hasn't, writing status: 'absent'
+/// will compile fine here but fail at runtime with a Postgres invalid
+/// enum value error. Worth confirming before relying on this.
 class HeadcountStatus {
   static const safe = 'safe';
   static const trap = 'trap';
   static const missing = 'missing';
   static const searching = 'searching';
+  static const absent = 'absent';
 
-  static const all = [safe, trap, missing, searching];
+  static const all = [safe, trap, missing, searching, absent];
 
   static String label(String status) {
     switch (status) {
@@ -20,6 +27,8 @@ class HeadcountStatus {
         return 'Missing';
       case searching:
         return 'Searching';
+      case absent:
+        return 'Absent';
       default:
         return status;
     }
@@ -35,6 +44,8 @@ class HeadcountStatus {
         return Colors.red;
       case searching:
         return Colors.amber.shade800;
+      case absent:
+        return Colors.grey.shade600;
       default:
         return Colors.grey;
     }
@@ -48,7 +59,7 @@ class HeadcountStatus {
 /// doesn't gate whether a status can be set.
 ///
 /// `status` is null until a teacher marks them — that's "not yet
-/// counted", distinct from any of the four real enum values, so don't
+/// counted", distinct from any of the five real enum values, so don't
 /// treat null as one of the HeadcountStatus constants.
 class HeadcountStudent {
   final String rosterId;
@@ -67,21 +78,3 @@ class HeadcountStudent {
     this.updatedAt,
   });
 }
-class KpiDataModel {
-  final int totalExpected;
-  final int totalCounted;
-  final int safeCount;
-  final int injuredCount;
-  final int missingCount;
-  final int absentCount;
-
-  KpiDataModel({
-    required this.totalExpected,
-    required this.totalCounted,
-    required this.safeCount,
-    required this.injuredCount,
-    required this.missingCount,
-    required this.absentCount,
-  });
-}
-

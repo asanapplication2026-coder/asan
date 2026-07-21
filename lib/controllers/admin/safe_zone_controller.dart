@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
-import '../models/safe_zone_model.dart';
-import '../services/safe_zone_service.dart';
+import '../../models/safe_zone_model.dart';
+import '../../services/safe_zone_service.dart';
 
 class SafeZoneController extends GetxController {
   final SafeZoneService _service = SafeZoneService();

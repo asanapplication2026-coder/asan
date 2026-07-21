@@ -1,7 +1,7 @@
-import '../models/head_count_status.dart';
 import 'supabase_client.dart';
 import '../models/drill_event.dart';
 import '../models/section_claim.dart';
+import '../models/head_count_status.dart';
 
 class DrillService {
   /// Admin/teacher starts a drill or a real emergency.
@@ -75,12 +75,16 @@ class DrillService {
   // headcount" flow. Nothing above was changed — existing callers of
   // startDrill/endDrill/fetchActiveDrills/fetchAllDrills are unaffected.
   //
-  // Headcount writes to its own `headcount_entries` table (see the
-  // 2026_07_headcount_entries migration) rather than
-  // status_updates/current_status — those two power student
-  // self-report (student_id = auth.uid()) and have RLS policies built
-  // around that, which a roster-based student can't satisfy. Keeping
-  // headcount separate avoids touching any of that.
+  // Headcount writes to its own `headcount_entries` table rather than
+  // status_updates/current_status — those two power student self-report
+  // and have RLS policies built around that, which a roster-based
+  // student can't satisfy. Keeping headcount separate avoids touching
+  // any of that.
+  //
+  // NOTE: safe-zone fetching used to live here too (fetchActiveSafeZones)
+  // but that duplicated SafeZoneService, which the admin safe-zone
+  // screen already owns — removed in favor of calling SafeZoneService
+  // directly from MapHeadcountGateController instead of from here.
   //
   // ⚠️ Worth doing at the database level that this client code cannot
   // guarantee on its own: add a UNIQUE constraint on
@@ -146,9 +150,9 @@ class DrillService {
   }
 
   /// Every student on the roster for this section — registered or not.
-  /// Headcount now tracks `roster.id` directly (see the 2026_07
-  /// migration), so a student who hasn't signed up for the app yet is
-  /// included the same as one who has. `isRegistered` is display-only.
+  /// Headcount tracks `roster.id` directly, so a student who hasn't
+  /// signed up for the app yet is included the same as one who has.
+  /// `isRegistered` is display-only.
   Future<List<HeadcountStudent>> fetchStudentsForHeadcount(String sectionId) async {
     final rows = await supabase
         .from('roster')

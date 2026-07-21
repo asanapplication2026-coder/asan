@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/auth_service.dart';
+import '../../services/auth_service.dart';
 
 class SignupController extends GetxController {
   final _authService = AuthService();

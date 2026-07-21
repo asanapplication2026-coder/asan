@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/student_controller.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/teacher/student_controller.dart';
+import '../../controllers/auth/auth_controller.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});

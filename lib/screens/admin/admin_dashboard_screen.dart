@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 // Existing screens and controllers
-import '../../controllers/admin_section_controller.dart';
+import '../../controllers/admin/admin_section_controller.dart';
 
 // Updated Branding Colors
 const Color primaryRed = Color(0xFF751018);

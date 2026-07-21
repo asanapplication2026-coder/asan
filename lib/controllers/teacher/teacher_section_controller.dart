@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import '../services/section_service.dart';
-import '../models/section.dart';
+import '../../services/section_service.dart';
+import '../../models/section.dart';
 
 class TeacherSectionController extends GetxController {
   final _sectionService = SectionService();

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_selector/file_selector.dart';
-import '../services/section_service.dart';
-import '../models/section.dart';
-import '../models/parsed_roster_row.dart';
+import '../../services/section_service.dart';
+import '../../models/section.dart';
+import '../../models/parsed_roster_row.dart';
 
 class AdminRosterController extends GetxController {
   final _sectionService = SectionService();

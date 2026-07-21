@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import '../controllers/auth_controller.dart';
+import '../controllers/auth/auth_controller.dart';
 import '../screens/teacher/drill_sectio_select_screen.dart';
 import '../services/drill_service.dart';
 import '../services/push_notification_service.dart';

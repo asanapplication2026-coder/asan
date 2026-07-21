@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../controllers/teacher_roster_controller.dart';
+import '../../controllers/teacher/teacher_roster_controller.dart';
 import '../../models/parsed_roster_row.dart';
 
 const _primaryRed = Color(0xFF7B1113);

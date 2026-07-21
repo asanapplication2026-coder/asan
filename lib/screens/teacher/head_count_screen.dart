@@ -1,14 +1,13 @@
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/head_count_controller.dart';
+import '../../controllers/teacher/head_count_controller.dart';
 import '../../models/head_count_status.dart';
 
 const _primaryRed = Color(0xFF7B1113);
 const _iosBackground = Color(0xFFF2F2F7);
 
-class HeadcountScreen extends StatelessWidget {
+class HeadcountScreen extends StatefulWidget {
   const HeadcountScreen({
     super.key,
     required this.drillEventId,
@@ -21,19 +20,35 @@ class HeadcountScreen extends StatelessWidget {
   final String sectionLabel;
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(
-      HeadcountController(drillEventId: drillEventId, sectionId: sectionId),
-      tag: '$drillEventId-$sectionId',
-    );
+  State<HeadcountScreen> createState() => _HeadcountScreenState();
+}
 
+class _HeadcountScreenState extends State<HeadcountScreen> {
+  // `late final` field initializer runs exactly once when this State
+  // object is created — NOT on every rebuild the way it would inside
+  // build(). That distinction is the actual fix here: Get.put() inside
+  // a StatelessWidget's build() re-registers (and re-onInit()s, which
+  // re-triggers _load() and flips isLoading back to true) a brand new
+  // HeadcountController every time ANYTHING causes this widget to
+  // rebuild — including a status update itself, since setStatus()
+  // mutates reactive state that can trigger a rebuild higher up the
+  // tree. That's what "stuck on loading" was: a fresh controller
+  // instance quietly replacing the one an in-flight setStatus() call
+  // was still running against.
+  late final controller = Get.put(
+    HeadcountController(drillEventId: widget.drillEventId, sectionId: widget.sectionId),
+    tag: '${widget.drillEventId}-${widget.sectionId}',
+  );
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _iosBackground,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -42,7 +57,7 @@ class HeadcountScreen extends StatelessWidget {
         child: Obx(
               () => CupertinoTabBar(
             currentIndex: controller.selectedTab.value,
-            backgroundColor: Colors.white.withOpacity(0.9),
+            backgroundColor: Colors.white.withValues(alpha: 0.9),
             activeColor: _primaryRed,
             inactiveColor: CupertinoColors.inactiveGray,
             border: const Border(top: BorderSide(color: Colors.transparent)),
@@ -82,7 +97,7 @@ class HeadcountScreen extends StatelessWidget {
         return IndexedStack(
           index: controller.selectedTab.value,
           children: [
-            _StudentsTab(controller: controller, sectionLabel: sectionLabel),
+            _StudentsTab(controller: controller, sectionLabel: widget.sectionLabel),
             _OverviewTab(controller: controller),
           ],
         );
@@ -147,7 +162,7 @@ class _StudentsTab extends StatelessWidget {
                     decoration: BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
+                          color: Colors.black.withValues(alpha: 0.02),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -171,7 +186,7 @@ class _StudentsTab extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       scrollDirection: Axis.horizontal,
                       itemCount: ['All', ...HeadcountStatus.all].length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final filter = ['All', ...HeadcountStatus.all][index];
 
@@ -188,7 +203,7 @@ class _StudentsTab extends StatelessWidget {
                                 color: isSelected ? _primaryRed : CupertinoColors.systemGrey6,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: isSelected
-                                    ? [BoxShadow(color: _primaryRed.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
+                                    ? [BoxShadow(color: _primaryRed.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
                                     : [],
                               ),
                               child: Text(
@@ -239,7 +254,7 @@ class _StudentsTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
+                        color: Colors.black.withValues(alpha: 0.02),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -261,11 +276,18 @@ class _StudentsTab extends StatelessWidget {
                       ),
                       itemBuilder: (context, index) {
                         final student = controller.filteredStudents[index];
-                        return _StudentContactRow(
+                        // Wrapped in its own Obx: itemBuilder runs
+                        // AFTER the enclosing Obx's builder has already
+                        // returned, so isSaving/wasRecentlySaved reads
+                        // out here would never be tracked as
+                        // dependencies otherwise — see the fix note in
+                        // the controller for what that broke.
+                        return Obx(() => _StudentContactRow(
                           student: student,
                           isSaving: controller.isSaving(student.rosterId),
+                          justSaved: controller.wasRecentlySaved(student.rosterId),
                           onSetStatus: (status) => controller.setStatus(student.rosterId, status),
-                        );
+                        ));
                       },
                     ),
                   ),
@@ -282,14 +304,15 @@ class _StudentsTab extends StatelessWidget {
 
 class _StudentContactRow extends StatelessWidget {
   const _StudentContactRow({
-    super.key,
     required this.student,
     required this.isSaving,
+    required this.justSaved,
     required this.onSetStatus,
   });
 
   final dynamic student;
   final bool isSaving;
+  final bool justSaved;
   final ValueChanged<String> onSetStatus;
 
   String get _initials {
@@ -330,7 +353,7 @@ class _StudentContactRow extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _primaryRed.withOpacity(0.08),
+                  color: _primaryRed.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -370,7 +393,10 @@ class _StudentContactRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isSaving) const CupertinoActivityIndicator(radius: 10),
+              if (isSaving)
+                const CupertinoActivityIndicator(radius: 10)
+              else if (justSaved)
+                const Icon(CupertinoIcons.check_mark_circled_solid, color: Color(0xFF4CAF50), size: 20),
             ],
           ),
           const SizedBox(height: 18),
@@ -453,7 +479,7 @@ class _OverviewTab extends StatelessWidget {
                     children: [
                       _buildModernStatusCard('Safe', data.safeCount, const Color(0xFF4CAF50), const Color(0xFFE8F5E9), CupertinoIcons.checkmark_shield_fill),
                       _buildModernStatusCard('Injured', data.injuredCount, const Color(0xFFFF9800), const Color(0xFFFFF3E0), CupertinoIcons.bandage_fill),
-                      _buildModernStatusCard('Missing', data.missingCount, _primaryRed, _primaryRed.withOpacity(0.08), CupertinoIcons.exclamationmark_triangle_fill),
+                      _buildModernStatusCard('Missing', data.missingCount, _primaryRed, _primaryRed.withValues(alpha: 0.08), CupertinoIcons.exclamationmark_triangle_fill),
                       _buildModernStatusCard('Absent', data.absentCount, const Color(0xFF757575), const Color(0xFFF5F5F5), CupertinoIcons.xmark_circle_fill),
                     ],
                   ),
@@ -475,7 +501,7 @@ class _OverviewTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -536,7 +562,7 @@ class _OverviewTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryColor.withOpacity(0.1), width: 1),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.1), width: 1),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -546,7 +572,7 @@ class _OverviewTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.15),
+              color: primaryColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: primaryColor, size: 24),
@@ -566,7 +592,7 @@ class _OverviewTab extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: primaryColor.withOpacity(0.8),
+                  color: primaryColor.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                   letterSpacing: -0.3,

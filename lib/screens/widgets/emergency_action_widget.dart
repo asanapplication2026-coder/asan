@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/drill_controller.dart';
+import '../../controllers/admin/drill_controller.dart';
 import '../../models/drill_event.dart';
 import '../admin/admin_dashboard_screen.dart'; // Assuming primaryRed / accentYellow are here
 

@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:asan_evac_app/generated/assets.dart';
-import '../../controllers/signup_controller.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/auth/signup_controller.dart';
+import '../../controllers/auth/auth_controller.dart';
 import '../admin/admin_dashboard_screen.dart'; // Imports AuthController for email validation
 
 class SignupScreen extends StatelessWidget {

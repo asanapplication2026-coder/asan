@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_selector/file_selector.dart';
-import '../services/section_service.dart';
-import '../services/local_roster_cache.dart';
-import '../models/section.dart';
-import '../models/parsed_roster_row.dart';
+import '../../services/section_service.dart';
+import '../../services/local_roster_cache.dart';
+import '../../models/section.dart';
+import '../../models/parsed_roster_row.dart';
 import 'teacher_section_controller.dart';
-import 'auth_controller.dart';
+import '../auth/auth_controller.dart';
 
 /// Roster management scoped to sections the signed-in teacher advises.
 ///
@@ -109,6 +109,7 @@ class TeacherRosterController extends GetxController {
     }
   }
 
+  @override
   Future<void> refresh() => _loadRoster();
 
   bool _sectionIsMine(String? sectionId) =>

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/auth_controller.dart';
+import '../controllers/auth/auth_controller.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/admin_root_screen.dart';
 import 'auth/login_screen.dart';

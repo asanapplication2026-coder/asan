@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 // Controllers
-import '../../controllers/admin_roster_controller.dart';
-import '../../controllers/admin_approval_controller.dart';
+import '../../controllers/admin/admin_roster_controller.dart';
+import '../../controllers/admin/admin_approval_controller.dart';
 import '../../models/parsed_roster_row.dart';
 
 // Shared widgets

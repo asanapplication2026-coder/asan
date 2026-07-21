@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/admin_section_controller.dart';
+import '../../controllers/admin/admin_section_controller.dart';
 
 class CreateSectionModal extends StatelessWidget {
   const CreateSectionModal({super.key});

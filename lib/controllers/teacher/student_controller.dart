@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import '../services/section_service.dart';
-import '../models/section.dart';
-import 'auth_controller.dart';
+import '../../services/section_service.dart';
+import '../../models/section.dart';
+import '../auth/auth_controller.dart';
 
 class StudentController extends GetxController {
   final _sectionService = SectionService();

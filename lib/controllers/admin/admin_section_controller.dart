@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../services/section_service.dart';
-import '../models/app_profile.dart';
-import '../models/section.dart';
+import '../../services/section_service.dart';
+import '../../models/app_profile.dart';
+import '../../models/section.dart';
 
 class AdminSectionController extends GetxController {
   final _sectionService = SectionService();

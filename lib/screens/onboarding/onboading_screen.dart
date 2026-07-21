@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:asan_evac_app/generated/assets.dart';
-import '../../controllers/onboarding_controller.dart';
+import '../../controllers/onboarding/onboarding_controller.dart';
 import '../admin/admin_dashboard_screen.dart'; // Retained for primaryRed
 
 class OnboardingScreen extends StatefulWidget {

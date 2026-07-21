@@ -1,6 +1,6 @@
+import 'package:asan_evac_app/services/profile_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../services/profile_service.dart';
 
 /// Prompts the signed-in user to register a contact number.
 /// No OTP step — this just persists the number to

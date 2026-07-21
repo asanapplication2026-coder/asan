@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../controllers/admin_section_controller.dart';
+import '../../controllers/admin/admin_section_controller.dart';
 
 class CreateSectionScreen extends StatelessWidget {
   const CreateSectionScreen({super.key});

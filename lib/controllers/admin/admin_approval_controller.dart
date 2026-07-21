@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:get/get.dart';
-import '../services/admin_approval_service.dart';
-import '../models/app_profile.dart';
+import '../../services/admin_approval_service.dart';
+import '../../models/app_profile.dart';
 
 class AdminApprovalController extends GetxController {
   final _approvalService = AdminApprovalService();

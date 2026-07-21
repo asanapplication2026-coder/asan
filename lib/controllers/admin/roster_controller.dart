@@ -1,7 +1,7 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:get/get.dart';
-import '../services/section_service.dart';
-import '../models/section.dart';
+import '../../services/section_service.dart';
+import '../../models/section.dart';
 
 /// One instance per section — put with `tag: section.id` so navigating
 /// to different sections' roster screens doesn't share state.

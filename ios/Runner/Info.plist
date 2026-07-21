@@ -27,6 +27,8 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Used to confirm you're in a safe zone before starting headcount.</string>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
 			<false/>
