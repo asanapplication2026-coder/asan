@@ -20,6 +20,7 @@ class AuthController extends GetxController {
   final RxnString signupCompletionError = RxnString();
 
   bool _pushInitialized = false;
+  bool _tokenRefreshListenerSet = false;
 
   @override
   void onInit() {
@@ -80,7 +81,27 @@ class AuthController extends GetxController {
     if (status == AuthorizationStatus.notDetermined) {
       await _showNotificationPermissionDialog();
     } else {
-      await PushNotificationService.instance.requestPermissionAndSubscribe();
+      final granted = await PushNotificationService.instance.requestPermissionAndSubscribe();
+      if (granted) await _registerFcmToken();
+    }
+  }
+
+  /// Fetches the current device token and saves it to profiles.fcm_token,
+  /// then (once per app session) starts listening for token rotation so
+  /// a refreshed token doesn't leave the profile row stale. Call this
+  /// only after permission has actually been granted — an ungranted
+  /// device shouldn't be targetable for push anyway.
+  Future<void> _registerFcmToken() async {
+    final token = await PushNotificationService.instance.getToken();
+    if (token != null) {
+      await _authService.updateFcmToken(token);
+    }
+
+    if (!_tokenRefreshListenerSet) {
+      _tokenRefreshListenerSet = true;
+      PushNotificationService.instance.onTokenRefresh.listen((newToken) {
+        _authService.updateFcmToken(newToken);
+      });
     }
   }
 
@@ -97,7 +118,9 @@ class AuthController extends GetxController {
           FilledButton(
             onPressed: () async {
               Get.back();
+              final granted =
               await PushNotificationService.instance.requestPermissionAndSubscribe();
+              if (granted) await _registerFcmToken();
             },
             child: const Text('Allow Notifications'),
           ),
