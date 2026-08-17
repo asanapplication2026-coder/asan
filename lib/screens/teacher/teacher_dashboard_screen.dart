@@ -57,6 +57,16 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     }
   }
 
+  /// Pull-to-refresh entry point — reloads both the section list and the
+  /// active-drill banner together so the teacher never has to force-close
+  /// and reopen the app to see updated state.
+  Future<void> _refresh() async {
+    await Future.wait([
+      controller.fetchMySections(),
+      _checkActiveDrill(),
+    ]);
+  }
+
   void _checkPhoneRegistration() {
     final profile = authController.profile.value;
     if (profile == null) return; // still loading — nothing to gate yet
@@ -131,11 +141,16 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         );
 
         if (controller.mySections.isEmpty) {
-          return Column(
-            children: [
-              ?drillBanner,
-              const Expanded(
-                child: Center(
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              // Needs to be scrollable (even though the content is short)
+              // for RefreshIndicator's pull gesture to register.
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                ?drillBanner,
+                const Padding(
+                  padding: EdgeInsets.only(top: 80),
                   child: Padding(
                     padding: EdgeInsets.all(24),
                     child: Text(
@@ -145,13 +160,13 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         }
 
         return RefreshIndicator(
-          onRefresh: controller.fetchMySections,
+          onRefresh: _refresh,
           child: ListView.builder(
             itemCount: controller.mySections.length + (drillBanner != null ? 1 : 0),
             itemBuilder: (context, index) {

@@ -1,80 +1,56 @@
-// Model layer for the `public.distress_signals` table.
-//
-// Maps 1:1 to the Postgres schema:
-//   id              uuid            PK
-//   drill_event_id  uuid            FK -> drill_events.id
-//   student_id      uuid            FK -> profiles.id
-//   channel         distress_channel enum ('app' | 'sms' | 'missed_call')
-//   latitude        double precision (nullable)
-//   longitude       double precision (nullable)
-//   building        text            (nullable)
-//   floor           text            (nullable)
-//   message         text            (nullable)
-//   created_at      timestamptz
-
-/// Mirrors the `distress_channel` Postgres enum.
+/// Mirrors the `distress_channel` Postgres enum on `public.distress_signals`.
 enum DistressChannel {
-  app,
-  sms,
-  missedCall;
+  app('app'),
+  sms('sms'),
+  missedCall('missed_call');
 
-  /// Converts the raw Postgres enum value (e.g. 'missed_call') to
-  /// its Dart equivalent.
-  static DistressChannel fromRaw(String raw) {
-    switch (raw) {
-      case 'app':
-        return DistressChannel.app;
-      case 'sms':
-        return DistressChannel.sms;
-      case 'missed_call':
-        return DistressChannel.missedCall;
-      default:
-        throw ArgumentError('Unknown distress_channel value: $raw');
-    }
-  }
+  const DistressChannel(this.value);
+  final String value;
 
-  /// Converts back to the raw Postgres enum value for inserts/filters.
-  String get raw {
-    switch (this) {
-      case DistressChannel.app:
-        return 'app';
-      case DistressChannel.sms:
-        return 'sms';
-      case DistressChannel.missedCall:
-        return 'missed_call';
-    }
-  }
-
-  /// Human readable label for UI display.
-  String get label {
-    switch (this) {
-      case DistressChannel.app:
-        return 'In-App SOS';
-      case DistressChannel.sms:
-        return 'SMS';
-      case DistressChannel.missedCall:
-        return 'Missed Call';
-    }
+  static DistressChannel fromValue(String value) {
+    return DistressChannel.values.firstWhere(
+          (c) => c.value == value,
+      orElse: () => DistressChannel.app,
+    );
   }
 }
 
-class DistressSignalModel {
-  const DistressSignalModel({
+/// A single row from `public.distress_signals`.
+///
+/// One signal = one distress event, regardless of how it arrived
+/// (in-app SOS button, an SMS the device received, or a missed call).
+class DistressSignal {
+  DistressSignal({
     required this.id,
     required this.drillEventId,
-    required this.studentId,
     required this.channel,
     required this.createdAt,
+    this.rosterId,
+    this.studentName,
     this.latitude,
     this.longitude,
     this.building,
     this.floor,
     this.message,
-  });
+  }) : assert(
+  rosterId != null || studentName != null,
+  'A signal needs either a resolved rosterId or a studentName fallback',
+  );
 
   final String id;
   final String drillEventId;
-  final String studentId;
+
+  /// Null when the sender couldn't be resolved to a roster entry (unknown
+  /// phone, and no identifier in the SMS matched — see
+  /// DistressSignalService.resolveRosterId). [studentName] is the fallback
+  /// for display in that case.
+  final String? rosterId;
+
+  /// Whatever identifier the student typed (school ID or name), stored
+  /// verbatim as a fallback so an unresolved signal still shows *someone*
+  /// on screen instead of being unfileable.
+  final String? studentName;
+
   final DistressChannel channel;
   final double? latitude;
   final double? longitude;
@@ -83,61 +59,38 @@ class DistressSignalModel {
   final String? message;
   final DateTime createdAt;
 
-  bool get hasLocation => latitude != null && longitude != null;
+  bool get hasCoordinates => latitude != null && longitude != null;
+  bool get isResolved => rosterId != null;
 
-  factory DistressSignalModel.fromJson(Map<String, dynamic> json) {
-    return DistressSignalModel(
-      id: json['id'] as String,
-      drillEventId: json['drill_event_id'] as String,
-      studentId: json['student_id'] as String,
-      channel: DistressChannel.fromRaw(json['channel'] as String),
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
-      building: json['building'] as String?,
-      floor: json['floor'] as String?,
-      message: json['message'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+  factory DistressSignal.fromMap(Map<String, dynamic> map) {
+    return DistressSignal(
+      id: map['id'] as String,
+      drillEventId: map['drill_event_id'] as String,
+      rosterId: map['roster_id'] as String?,
+      studentName: map['student_name'] as String?,
+      channel: DistressChannel.fromValue(map['channel'] as String),
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
+      building: map['building'] as String?,
+      floor: map['floor'] as String?,
+      message: map['message'] as String?,
+      createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
 
-  /// Payload used for inserts. `id` and `created_at` are generated by
-  /// the database, so they're intentionally excluded.
-  Map<String, dynamic> toInsertJson() {
+  /// Payload for `INSERT` — deliberately excludes `id` and `created_at`,
+  /// which the database generates.
+  Map<String, dynamic> toInsertMap() {
     return {
       'drill_event_id': drillEventId,
-      'student_id': studentId,
-      'channel': channel.raw,
+      'channel': channel.value,
+      if (rosterId != null) 'roster_id': rosterId,
+      if (studentName != null) 'student_name': studentName,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
       if (building != null) 'building': building,
       if (floor != null) 'floor': floor,
       if (message != null) 'message': message,
     };
-  }
-
-  DistressSignalModel copyWith({
-    String? id,
-    String? drillEventId,
-    String? studentId,
-    DistressChannel? channel,
-    double? latitude,
-    double? longitude,
-    String? building,
-    String? floor,
-    String? message,
-    DateTime? createdAt,
-  }) {
-    return DistressSignalModel(
-      id: id ?? this.id,
-      drillEventId: drillEventId ?? this.drillEventId,
-      studentId: studentId ?? this.studentId,
-      channel: channel ?? this.channel,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      building: building ?? this.building,
-      floor: floor ?? this.floor,
-      message: message ?? this.message,
-      createdAt: createdAt ?? this.createdAt,
-    );
   }
 }
