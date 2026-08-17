@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.example.asan_evac_app"
-    compileSdk = 37
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
