@@ -1,11 +1,12 @@
 import 'dart:ui';
 import 'package:asan_evac_app/screens/teacher/chat_screen.dart';
+import 'package:asan_evac_app/screens/teacher/distress_signal_tab.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart'; // Added for OpenStreetMap support
+// Added for OpenStreetMap support
 import 'package:get/get.dart';
-import 'package:latlong2/latlong.dart'; // Added for coordinate mapping
+// Added for coordinate mapping
 import '../../controllers/teacher/head_count_controller.dart';
 import '../../models/head_count_status.dart';
 
@@ -59,7 +60,10 @@ class _HeadcountScreenState extends State<HeadcountScreen> {
             _StudentsTab(controller: controller, sectionLabel: widget.sectionLabel),
             ChatScreen(sectionId: widget.sectionId, drillEventId: widget.drillEventId),
             _OverviewTab(controller: controller),
-            const _DistressMapTab(),
+             DistressSignalTab(
+              drillEventId: widget.drillEventId,
+              studentDirectory: controller.studentDirectory, // optional id -> name map, if you have one
+            ),
           ],
         );
       }),
@@ -159,232 +163,6 @@ class _HeadcountScreenState extends State<HeadcountScreen> {
   }
 }
 
-// ============================================================================
-// REFACTORED: DISTRESS MAP TAB WITH REAL OPEN STREET MAPS LAYER
-// ============================================================================
-class _DistressMapTab extends StatelessWidget {
-  const _DistressMapTab();
-
-  @override
-  Widget build(BuildContext context) {
-    // Structured Dummy Data for Students
-    final dummyDistressAlerts = [
-      {
-        'name': 'Juan Dela Cruz',
-        'id': '2021-10432',
-        'loc': 'Building A - Near Main Entrance',
-        'time': '2m ago',
-        'coords': const LatLng(11.5845, 122.7540) // Dummy coordinates inside Roxas City area
-      },
-      {
-        'name': 'Maria Clara',
-        'id': '2022-11904',
-        'loc': 'Gymnasium East Bleachers',
-        'time': '5m ago',
-        'coords': const LatLng(11.5860, 122.7565)
-      },
-    ];
-
-    return Stack(
-      children: [
-        // 1. OPEN STREET MAP IMPLEMENTATION
-        FlutterMap(
-          options: MapOptions(
-            initialCenter: const LatLng(11.5853, 122.7550), // Center focus point
-            initialZoom: 16.0,
-            maxZoom: 19.0,
-            minZoom: 12.0,
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.asan.evac.app',
-            ),
-            MarkerLayer(
-              markers: dummyDistressAlerts.map((alert) {
-                return Marker(
-                  point: alert['coords'] as LatLng,
-                  width: 75,
-                  height: 75,
-                  child: _buildMapPinWidget(name: alert['name'] as String),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-
-        // 2. TOP FLOATING EMERGENCY STATUS HEADER
-        Positioned(
-          top: 60,
-          left: 16,
-          right: 16,
-          child: SafeArea(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.systemRed.withValues(alpha: 0.9),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(CupertinoIcons.waveform_path_ecg, color: Colors.white, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          '${dummyDistressAlerts.length} Active Distress Signals Detected',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              letterSpacing: -0.2
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // 3. iOS SLIDING ACTION SHEET OVERLAY
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: 104, // Space maintained perfectly clear above floating custom navbar
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey4,
-                      borderRadius: BorderRadius.circular(2.5),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Critical Broadcast Roster',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.3),
-                ),
-                const SizedBox(height: 12),
-                ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: dummyDistressAlerts.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final item = dummyDistressAlerts[index];
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey6,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: const BoxDecoration(
-                              color: CupertinoColors.destructiveRed,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(CupertinoIcons.exclamationmark_triangle_fill, color: Colors.white, size: 16),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(item['name'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                const SizedBox(height: 2),
-                                Text(item['loc'] as String, style: const TextStyle(fontSize: 12, color: CupertinoColors.secondaryLabel, fontWeight: FontWeight.w500)),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            item['time'] as String,
-                            style: const TextStyle(fontSize: 11, color: CupertinoColors.systemRed, fontWeight: FontWeight.w700),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                )
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Refactored Map Marker component layout for standard rendering inside MarkerLayer
-  Widget _buildMapPinWidget({required String name}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: CupertinoColors.black,
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4)],
-          ),
-          child: Text(
-            name.split(' ').first + '.', // Inline compression to save space on map grids
-            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            _AnimatedMapPulseRing(),
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: CupertinoColors.systemRed,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1))],
-              ),
-              child: const Icon(
-                CupertinoIcons.person_fill,
-                color: Colors.white,
-                size: 14,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-// Built-in looping widget emitting clear beacon ripple signals over coordinates
 class _AnimatedMapPulseRing extends StatefulWidget {
   @override
   State<_AnimatedMapPulseRing> createState() => _AnimatedMapPulseRingState();

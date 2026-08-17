@@ -1,4 +1,5 @@
 import 'package:asan_evac_app/screens/admin/admin_dashboard_screen.dart';
+import 'package:asan_evac_app/services/distress_sms_service.dart';
 import 'package:asan_evac_app/services/push_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -16,6 +17,11 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(
     firebaseMessagingBackgroundHandler,
   ); // Set up notification listener[cite: 4]
+
+
+  final smsListener = DistressSmsListenerService();
+  await smsListener.requestPermissions();
+  smsListener.startListening();
 
   final localStorage =
       await LocalStorageService.init(); // Mount shared preferences locally[cite: 4]

@@ -86,7 +86,7 @@ class MessageController extends GetxController {
     }
   }
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, {String messageType = 'text'}) async {
     final trimmed = content.trim();
     final senderId = currentUserId;
     if (trimmed.isEmpty || senderId == null) return;
@@ -99,6 +99,7 @@ class MessageController extends GetxController {
         drillEventId: drillEventId,
         senderId: senderId,
         content: trimmed,
+        messageType: messageType,
       );
     } catch (e) {
       sendError.value = 'Failed to send message: $e';

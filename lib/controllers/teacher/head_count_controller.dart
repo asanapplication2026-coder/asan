@@ -83,6 +83,9 @@ class HeadcountController extends GetxController {
     return students.where((s) => s.status == filter).toList();
   }
 
+  Map<String, String> get studentDirectory => {
+    for (final s in students) s.rosterId: s.fullName,
+  };
   /// KPI data for the Overview tab. The "Injured" card maps to the
   /// `trap` status constant — your HeadcountStatus enum never had a
   /// separate `injured` value, "Injured" is just the display text this

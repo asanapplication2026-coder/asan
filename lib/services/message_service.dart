@@ -30,7 +30,7 @@ class MessageService {
   }) async {
     await supabase.from('messages').insert({
       'section_id': sectionId,
-      if (drillEventId != null) 'drill_event_id': drillEventId,
+      'drill_event_id': ?drillEventId,
       'sender_id': senderId,
       'content': content,
       'message_type': messageType,
