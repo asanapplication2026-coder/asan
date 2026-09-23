@@ -8,9 +8,10 @@ import 'package:flutter/material.dart';
 /// to have actually been run — if it hasn't, writing status: 'absent'
 /// will compile fine here but fail at runtime with a Postgres invalid
 /// enum value error. Worth confirming before relying on this.
+/// 	safe, injured, missing, searching, absent
 class HeadcountStatus {
   static const safe = 'safe';
-  static const trap = 'trap';
+  static const trap = 'injured';
   static const missing = 'missing';
   static const searching = 'searching';
   static const absent = 'absent';
@@ -22,7 +23,7 @@ class HeadcountStatus {
       case safe:
         return 'Safe';
       case trap:
-        return 'Trapped';
+        return 'Injured';
       case missing:
         return 'Missing';
       case searching:

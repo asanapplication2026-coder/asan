@@ -501,7 +501,7 @@ class _BottomBar extends StatelessWidget {
                   disabledColor: CupertinoColors.systemGrey5,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   borderRadius: BorderRadius.circular(12),
-                  onPressed: !inside ? onStart : null,
+                  onPressed: inside ? onStart : null,
                   child: Text(
                     'Start Headcount',
                     style: TextStyle(
