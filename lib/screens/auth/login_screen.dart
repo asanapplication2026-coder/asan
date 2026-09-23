@@ -6,6 +6,7 @@ import '../../controllers/auth/login_controller.dart';
 import '../../controllers/auth/auth_controller.dart'; // Imports AuthController for email validation
 import '../admin/admin_dashboard_screen.dart';
 import 'signup_screen.dart';
+import '../legal/legal_terms_agreement_screen.dart'; // Adjust path if placed elsewhere
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
@@ -107,10 +108,10 @@ class LoginScreen extends StatelessWidget {
                                   colors: [
                                     primaryRed,
                                     Color.lerp(
-                                          primaryRed,
-                                          Colors.white,
-                                          0.28,
-                                        ) ??
+                                      primaryRed,
+                                      Colors.white,
+                                      0.28,
+                                    ) ??
                                         primaryRed,
                                   ],
                                   begin: Alignment.centerLeft,
@@ -172,18 +173,18 @@ class LoginScreen extends StatelessWidget {
                             final pwd = _currentPassword.value;
                             final bool isPasswordValid =
                                 pwd.length >= 6 &&
-                                RegExp(r'[a-z]').hasMatch(pwd) &&
-                                RegExp(r'[A-Z]').hasMatch(pwd) &&
-                                RegExp(r'[0-9]').hasMatch(pwd) &&
-                                RegExp(r'[^a-zA-Z0-9\s]').hasMatch(pwd);
+                                    RegExp(r'[a-z]').hasMatch(pwd) &&
+                                    RegExp(r'[A-Z]').hasMatch(pwd) &&
+                                    RegExp(r'[0-9]').hasMatch(pwd) &&
+                                    RegExp(r'[^a-zA-Z0-9\s]').hasMatch(pwd);
 
                             final bool isEmailValid = authController
                                 .isValidEmail(_currentEmail.value.trim());
 
                             final bool isButtonDisabled =
                                 controller.isLoading.value ||
-                                !isEmailValid ||
-                                !isPasswordValid;
+                                    !isEmailValid ||
+                                    !isPasswordValid;
 
                             return Container(
                               height: 52,
@@ -193,18 +194,18 @@ class LoginScreen extends StatelessWidget {
                                 gradient: isButtonDisabled
                                     ? null
                                     : LinearGradient(
-                                        colors: [
-                                          primaryRed,
-                                          Color.lerp(
-                                                primaryRed,
-                                                Colors.black,
-                                                0.12,
-                                              ) ??
-                                              primaryRed,
-                                        ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
+                                  colors: [
+                                    primaryRed,
+                                    Color.lerp(
+                                      primaryRed,
+                                      Colors.black,
+                                      0.12,
+                                    ) ??
+                                        primaryRed,
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
                                 color: isButtonDisabled
                                     ? primaryRed.withValues(alpha: 0.4)
                                     : null,
@@ -224,17 +225,17 @@ class LoginScreen extends StatelessWidget {
                                     : controller.login,
                                 child: controller.isLoading.value
                                     ? const CupertinoActivityIndicator(
-                                        color: CupertinoColors.white,
-                                      )
+                                  color: CupertinoColors.white,
+                                )
                                     : const Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          color: CupertinoColors.white,
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: -0.4,
-                                        ),
-                                      ),
+                                  'Sign In',
+                                  style: TextStyle(
+                                    color: CupertinoColors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
                               ),
                             );
                           }),
@@ -255,7 +256,13 @@ class LoginScreen extends StatelessWidget {
                               ),
                               CupertinoButton(
                                 padding: EdgeInsets.zero,
-                                onPressed: () => Get.to(() => SignupScreen()),
+                                onPressed: () => Get.to(
+                                      () => LegalTermsAgreementScreen(
+                                    onAgree: () =>
+                                        Get.off(() => SignupScreen()),
+                                    onDecline: () => Get.back(),
+                                  ),
+                                ),
                                 child: const Text(
                                   'Sign Up',
                                   style: TextStyle(
@@ -271,31 +278,31 @@ class LoginScreen extends StatelessWidget {
 
                           // Premium Error Toast Banner
                           Obx(
-                            () => controller.errorMessage.value != null
+                                () => controller.errorMessage.value != null
                                 ? Padding(
-                                    padding: const EdgeInsets.only(top: 24),
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                        horizontal: 16,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: CupertinoColors.destructiveRed
-                                            .withValues(alpha: 0.08),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        controller.errorMessage.value!,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: CupertinoColors.destructiveRed,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  )
+                              padding: const EdgeInsets.only(top: 24),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: CupertinoColors.destructiveRed
+                                      .withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  controller.errorMessage.value!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: CupertinoColors.destructiveRed,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            )
                                 : const SizedBox.shrink(),
                           ),
                           const SizedBox(height: 20),
@@ -348,17 +355,17 @@ class LoginScreen extends StatelessWidget {
           decoration: const BoxDecoration(color: Colors.transparent),
           suffix: _currentEmail.value.isNotEmpty
               ? Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 200),
-                    opacity: isValid ? 1.0 : 0.0,
-                    child: Icon(
-                      CupertinoIcons.checkmark_alt_circle_fill,
-                      color: CupertinoColors.systemGreen.resolveFrom(context),
-                      size: 20,
-                    ),
-                  ),
-                )
+            padding: const EdgeInsets.only(right: 16),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: isValid ? 1.0 : 0.0,
+              child: Icon(
+                CupertinoIcons.checkmark_alt_circle_fill,
+                color: CupertinoColors.systemGreen.resolveFrom(context),
+                size: 20,
+              ),
+            ),
+          )
               : const SizedBox.shrink(),
         ),
       );
@@ -367,7 +374,7 @@ class LoginScreen extends StatelessWidget {
 
   Widget _buildPasswordField(BuildContext context) {
     return Obx(
-      () => Container(
+          () => Container(
         decoration: BoxDecoration(
           color: CupertinoColors.secondarySystemBackground.resolveFrom(context),
           borderRadius: BorderRadius.circular(14),
@@ -485,11 +492,11 @@ class LoginScreen extends StatelessWidget {
   }
 
   Widget _buildRequirementItem(
-    String title,
-    bool isMet,
-    Color metColor,
-    Color unmetColor,
-  ) {
+      String title,
+      bool isMet,
+      Color metColor,
+      Color unmetColor,
+      ) {
     return AnimatedDefaultTextStyle(
       duration: const Duration(milliseconds: 200),
       style: TextStyle(
