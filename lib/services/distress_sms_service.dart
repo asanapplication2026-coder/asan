@@ -34,7 +34,7 @@ class ParsedDistressSms {
 /// Parses the text body of an SMS into distress fields.
 ///
 /// Expected template (pipe-delimited, case-insensitive keyword):
-///   SOS|<school ID or full name>|[lat,lng]|[building]|[floor]|[message]
+///   SOS|[school ID or full name]|[lat,lng]|[building]|[floor]|[message]
 ///
 /// Example:
 ///   SOS|21-00456|14.568488,121.076232|Building A|2nd Floor|Trapped near the stairwell, can't move

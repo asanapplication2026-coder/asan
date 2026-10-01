@@ -8,9 +8,15 @@ const _primaryRed = Color(0xFF7B1113);
 
 /// Shown when a drill/emergency is active. Lists every section in the
 /// school (not just ones this teacher advises — anyone can step in
-/// during an emergency) and lets the teacher claim one to run headcount
-/// on. Already-claimed sections are shown, not hidden, so a teacher can
-/// see who's covering what at a glance.
+/// during an emergency) and lets the teacher claim sections to run
+/// headcount on.
+///
+/// Rules:
+///  * A section can be handled by several teachers at once — other
+///    teachers' claims are shown, not hidden, but don't block you.
+///  * A teacher can claim at most
+///    [SectionClaimController.maxClaimsPerTeacher] sections per drill.
+///    Once at the limit, sections you haven't claimed are locked.
 class DrillSectionSelectScreen extends StatelessWidget {
   const DrillSectionSelectScreen({super.key, required this.drillEvent});
 
@@ -19,6 +25,16 @@ class DrillSectionSelectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(SectionClaimController(drillEvent));
+
+    void openHeadcount(String sectionId, String sectionLabel) {
+      Get.to(
+        () => MapHeadcountGateScreen(
+          drillEventId: drillEvent.id,
+          sectionId: sectionId,
+          sectionLabel: sectionLabel,
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -34,6 +50,8 @@ class DrillSectionSelectScreen extends StatelessWidget {
           return Center(child: Text(controller.errorMessage.value!));
         }
 
+        final max = SectionClaimController.maxClaimsPerTeacher;
+
         return RefreshIndicator(
           onRefresh: controller.refresh,
           child: ListView(
@@ -46,23 +64,32 @@ class DrillSectionSelectScreen extends StatelessWidget {
                   color: _primaryRed.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: _primaryRed),
-                    SizedBox(width: 10),
+                    const Icon(Icons.warning_amber_rounded, color: _primaryRed),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Select the section you\'re handling right now, then start the headcount.',
-                        style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500),
+                        'Select the section(s) you\'re handling right now, then start the headcount. '
+                        'You can handle up to $max sections '
+                        '(${controller.myClaimCount}/$max claimed).',
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
               ...controller.allSections.map((section) {
-                final claim = controller.claimFor(section.id);
+                final label = '${section.yearLevel ?? ''} — ${section.name}'
+                    .trim();
                 final claimedByMe = controller.isClaimedByMe(section.id);
-                final claimedByOther = claim != null && !claimedByMe;
+                final others = controller.othersFor(section.id);
+                final othersText = others.map((c) => c.teacherName).join(', ');
+                // At the limit and this isn't one of my sections -> locked.
+                final blocked = !claimedByMe && !controller.canClaimMore;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -70,25 +97,39 @@ class DrillSectionSelectScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: claimedByMe ? Colors.green.shade200 : Colors.grey.shade200,
+                      color: claimedByMe
+                          ? Colors.green.shade200
+                          : Colors.grey.shade200,
                     ),
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     title: Text(
-                      '${section.yearLevel ?? ''} — ${section.name}'.trim(),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: blocked ? Colors.grey.shade600 : null,
+                      ),
                     ),
                     subtitle: Text(
                       claimedByMe
-                          ? 'You\'re handling this — tap to open headcount'
-                          : claimedByOther
-                          ? 'Claimed by ${claim.teacherName}'
+                          ? others.isNotEmpty
+                                ? 'You\'re handling this with $othersText — tap to open headcount'
+                                : 'You\'re handling this — tap to open headcount'
+                          : blocked
+                          ? others.isNotEmpty
+                                ? 'Handled by $othersText · Limit reached ($max/$max)'
+                                : 'Limit reached ($max/$max)'
+                          : others.isNotEmpty
+                          ? 'Also handled by $othersText — tap to join'
                           : 'Unclaimed',
                       style: TextStyle(
                         color: claimedByMe
                             ? Colors.green.shade700
-                            : claimedByOther
+                            : blocked
                             ? Colors.grey.shade600
                             : _primaryRed,
                         fontWeight: FontWeight.w500,
@@ -96,35 +137,39 @@ class DrillSectionSelectScreen extends StatelessWidget {
                     ),
                     trailing: claimedByMe
                         ? const Icon(Icons.chevron_right, color: Colors.green)
-                        : claimedByOther
+                        : blocked
                         ? const Icon(Icons.lock_outline, color: Colors.grey)
-                        : Obx(() => controller.isClaiming.value
-                        ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                        : const Icon(Icons.chevron_right, color: _primaryRed)),
-                    onTap: claimedByOther
-                        ? () => Get.snackbar('Already Claimed', 'Handled by ${claim.teacherName}.')
+                        : Obx(
+                            () => controller.isClaiming.value
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.chevron_right,
+                                    color: _primaryRed,
+                                  ),
+                          ),
+                    onTap: blocked
+                        ? () => Get.snackbar(
+                            'Limit reached',
+                            'You can handle at most $max sections.',
+                          )
                         : () async {
-                      if (claimedByMe) {
-                        Get.to(() => MapHeadcountGateScreen(
-                          drillEventId: drillEvent.id,
-                          sectionId: section.id,
-                          sectionLabel: '${section.yearLevel ?? ''} — ${section.name}'.trim(),
-                        ));
-                        return;
-                      }
-                      final result = await controller.claimSection(section.id);
-                      if (result != null) {
-                        Get.to(() => MapHeadcountGateScreen(
-                          drillEventId: drillEvent.id,
-                          sectionId: section.id,
-                          sectionLabel: '${section.yearLevel ?? ''} — ${section.name}'.trim(),
-                        ));
-                      }
-                    },
+                            if (claimedByMe) {
+                              openHeadcount(section.id, label);
+                              return;
+                            }
+                            final result = await controller.claimSection(
+                              section.id,
+                            );
+                            if (result != null) {
+                              openHeadcount(section.id, label);
+                            }
+                          },
                   ),
                 );
               }),

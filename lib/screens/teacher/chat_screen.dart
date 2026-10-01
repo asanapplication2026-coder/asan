@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../controllers/auth/auth_controller.dart';
 import '../../controllers/message_controller.dart';
 
 const _primaryRed = Color(0xFF7B1113);
@@ -21,7 +20,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   late final MessageController controller;
-  final _authController = Get.find<AuthController>();
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   int _lastMessageCount = 0;

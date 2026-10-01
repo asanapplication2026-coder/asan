@@ -60,7 +60,7 @@ class _HeadcountScreenState extends State<HeadcountScreen> {
             _StudentsTab(controller: controller, sectionLabel: widget.sectionLabel),
             ChatScreen(sectionId: widget.sectionId, drillEventId: widget.drillEventId),
             _OverviewTab(controller: controller),
-             DistressSignalTab(
+            DistressSignalTab(
               drillEventId: widget.drillEventId,
               studentDirectory: controller.studentDirectory, // optional id -> name map, if you have one
             ),
@@ -305,7 +305,7 @@ class _StudentsTab extends StatelessWidget {
                                     : [],
                               ),
                               child: Text(
-                                filter,
+                                filter == 'All' ? 'All' : HeadcountStatus.label(filter),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: isSelected ? Colors.white : CupertinoColors.secondaryLabel,

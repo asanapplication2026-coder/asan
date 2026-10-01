@@ -1,9 +1,14 @@
+import 'package:flutter/foundation.dart';
+
 import 'supabase_client.dart';
 import '../models/drill_event.dart';
 import '../models/section_claim.dart';
 import '../models/head_count_status.dart';
 
 class DrillService {
+  /// Mirrors the limit enforced by the `trg_max_two_claims` DB trigger.
+  static const int maxClaimsPerTeacher = 2;
+
   /// Admin/teacher starts a drill or a real emergency.
   ///
   /// This single insert is the entire trigger chain:
@@ -28,12 +33,12 @@ class DrillService {
     final row = await supabase
         .from('drill_events')
         .insert({
-      'name': name,
-      'event_type': eventType.name,
-      if (disasterType != null) 'disaster_type': disasterType.name,
-      'created_by': currentUserId,
-      // status defaults to 'active' in the DB, started_at defaults to now()
-    })
+          'name': name,
+          'event_type': eventType.name,
+          if (disasterType != null) 'disaster_type': disasterType.name,
+          'created_by': currentUserId,
+          // status defaults to 'active' in the DB, started_at defaults to now()
+        })
         .select()
         .single();
 
@@ -47,10 +52,13 @@ class DrillService {
   /// add a second webhook/trigger on UPDATE where status changes to
   /// 'ended' and have the edge function branch on payload.type.
   Future<void> endDrill(String drillEventId) async {
-    await supabase.from('drill_events').update({
-      'status': 'ended',
-      'ended_at': DateTime.now().toIso8601String(),
-    }).eq('id', drillEventId);
+    await supabase
+        .from('drill_events')
+        .update({
+          'status': 'ended',
+          'ended_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', drillEventId);
   }
 
   Future<List<DrillEvent>> fetchActiveDrills() async {
@@ -86,12 +94,16 @@ class DrillService {
   // screen already owns — removed in favor of calling SafeZoneService
   // directly from MapHeadcountGateController instead of from here.
   //
-  // ⚠️ Worth doing at the database level that this client code cannot
-  // guarantee on its own: add a UNIQUE constraint on
-  // event_section_assignments(drill_event_id, section_id) — that's
-  // what actually prevents two teachers claiming the same section in
-  // a race; the pre-check in claimSection below is a UX nicety, not a
-  // real lock, without it.
+  // Claim rules (enforced in the database, not just here):
+  //  * A section CAN be claimed by several teachers in the same drill.
+  //  * A teacher can claim at most [maxClaimsPerTeacher] sections per
+  //    drill. The `trg_max_two_claims` trigger on
+  //    event_section_assignments raises 'MAX_CLAIMS_REACHED: ...' when
+  //    a third claim is attempted.
+  //  * UNIQUE (drill_event_id, section_id, teacher_id) stops the same
+  //    teacher claiming the same section twice (Postgres code 23505).
+  // Do NOT add UNIQUE (drill_event_id, section_id) — that would block
+  // co-handling of a section.
   // ---------------------------------------------------------------------
 
   /// Convenience wrapper around [fetchActiveDrills] for callers (like the
@@ -104,7 +116,11 @@ class DrillService {
   }
 
   Future<DrillEvent?> fetchDrillEventById(String id) async {
-    final row = await supabase.from('drill_events').select().eq('id', id).maybeSingle();
+    final row = await supabase
+        .from('drill_events')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
     if (row == null) return null;
     return DrillEvent.fromMap(row);
   }
@@ -117,35 +133,45 @@ class DrillService {
     return (rows as List).map((r) => SectionClaim.fromMap(r)).toList();
   }
 
-  /// Throws [SectionAlreadyClaimedException] if the section is already
-  /// taken. Callers should pre-load [fetchClaimsForDrill] to disable
-  /// already-claimed sections in the UI, but should still handle this
-  /// exception for the race where two teachers tap at the same time.
+  /// Claims a section for [teacherId] in this drill. Other teachers may
+  /// already have claimed the same section — that's allowed.
+  ///
+  /// Throws a `PostgrestException` when the database rejects the claim:
+  ///  * message contains 'MAX_CLAIMS_REACHED' — teacher already has the
+  ///    maximum number of sections for this drill
+  ///  * code '23505' — this teacher already claimed this section
+  /// Callers should catch it (see SectionClaimController.claimSection).
   Future<SectionClaim> claimSection({
     required String drillEventId,
     required String sectionId,
     required String teacherId,
   }) async {
-    final existing = await supabase
-        .from('event_section_assignments')
-        .select('*, teacher:teacher_id(full_name)')
-        .eq('drill_event_id', drillEventId)
-        .eq('section_id', sectionId)
-        .maybeSingle();
-
-    if (existing != null) {
-      throw SectionAlreadyClaimedException(SectionClaim.fromMap(existing));
-    }
-
     final row = await supabase
         .from('event_section_assignments')
         .insert({
-      'drill_event_id': drillEventId,
-      'section_id': sectionId,
-      'teacher_id': teacherId,
-    })
+          'drill_event_id': drillEventId,
+          'section_id': sectionId,
+          'teacher_id': teacherId,
+        })
         .select('*, teacher:teacher_id(full_name)')
         .single();
+
+    // Seed every roster student as 'missing' now that the section is
+    // owned. Best-effort: the claim has already succeeded, so a seeding
+    // failure must not make it look like the claim failed.
+    // HeadcountController re-seeds anything missing when the screen loads.
+    try {
+      final roster = await fetchStudentsForHeadcount(sectionId);
+      await seedHeadcountMissing(
+        drillEventId: drillEventId,
+        sectionId: sectionId,
+        rosterIds: roster.map((s) => s.rosterId).toList(),
+        updatedBy: teacherId,
+      );
+    } catch (e) {
+      debugPrint('Headcount seed on claim failed: $e');
+    }
+
     return SectionClaim.fromMap(row);
   }
 
@@ -153,7 +179,9 @@ class DrillService {
   /// Headcount tracks `roster.id` directly, so a student who hasn't
   /// signed up for the app yet is included the same as one who has.
   /// `isRegistered` is display-only.
-  Future<List<HeadcountStudent>> fetchStudentsForHeadcount(String sectionId) async {
+  Future<List<HeadcountStudent>> fetchStudentsForHeadcount(
+    String sectionId,
+  ) async {
     final rows = await supabase
         .from('roster')
         .select()
@@ -161,12 +189,14 @@ class DrillService {
         .eq('role', 'student')
         .order('full_name');
     return (rows as List)
-        .map((r) => HeadcountStudent(
-      rosterId: r['id'] as String,
-      fullName: r['full_name'] as String,
-      schoolIdNumber: r['school_id_number'] as String,
-      isRegistered: r['claimed'] as bool? ?? false,
-    ))
+        .map(
+          (r) => HeadcountStudent(
+            rosterId: r['id'] as String,
+            fullName: r['full_name'] as String,
+            schoolIdNumber: r['school_id_number'] as String,
+            isRegistered: r['claimed'] as bool? ?? false,
+          ),
+        )
         .toList();
   }
 
@@ -180,7 +210,10 @@ class DrillService {
         .select()
         .eq('drill_event_id', drillEventId)
         .inFilter('roster_id', rosterIds);
-    return {for (final r in (rows as List)) r['roster_id'] as String: r as Map<String, dynamic>};
+    return {
+      for (final r in (rows as List))
+        r['roster_id'] as String: r as Map<String, dynamic>,
+    };
   }
 
   /// Single upsert into `headcount_entries` — this table is a snapshot
@@ -193,16 +226,45 @@ class DrillService {
     required String status,
     required String updatedBy,
   }) async {
-    await supabase.from('headcount_entries').upsert(
-      {
-        'drill_event_id': drillEventId,
-        'section_id': sectionId,
-        'roster_id': rosterId,
-        'status': status,
-        'updated_by': updatedBy,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      onConflict: 'drill_event_id,roster_id',
-    );
+    await supabase.from('headcount_entries').upsert({
+      'drill_event_id': drillEventId,
+      'section_id': sectionId,
+      'roster_id': rosterId,
+      'status': status,
+      'updated_by': updatedBy,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, onConflict: 'drill_event_id,roster_id');
+  }
+
+  /// Inserts a 'missing' row for each roster id that has no entry yet
+  /// for this drill. Existing rows are never overwritten
+  /// (`ignoreDuplicates` → INSERT ... ON CONFLICT DO NOTHING), so this
+  /// is safe to call repeatedly and safe against two teachers racing.
+  Future<void> seedHeadcountMissing({
+    required String drillEventId,
+    required String sectionId,
+    required List<String> rosterIds,
+    required String updatedBy,
+  }) async {
+    if (rosterIds.isEmpty) return;
+
+    final now = DateTime.now().toIso8601String();
+    await supabase
+        .from('headcount_entries')
+        .upsert(
+          [
+            for (final id in rosterIds)
+              {
+                'drill_event_id': drillEventId,
+                'section_id': sectionId,
+                'roster_id': id,
+                'status': HeadcountStatus.missing,
+                'updated_by': updatedBy,
+                'updated_at': now,
+              },
+          ],
+          onConflict: 'drill_event_id,roster_id',
+          ignoreDuplicates: true,
+        );
   }
 }

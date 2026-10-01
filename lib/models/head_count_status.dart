@@ -59,9 +59,11 @@ class HeadcountStatus {
 /// marked. `isRegistered` (from `roster.claimed`) is display-only; it
 /// doesn't gate whether a status can be set.
 ///
-/// `status` is null until a teacher marks them — that's "not yet
-/// counted", distinct from any of the five real enum values, so don't
-/// treat null as one of the HeadcountStatus constants.
+/// `status` defaults to [HeadcountStatus.missing]. HeadcountController
+/// assigns it on load: the saved value if a `headcount_entries` row
+/// exists, otherwise `missing` (which is also seeded into the DB). It
+/// is nullable only because the model is constructed before that
+/// assignment happens — after load, it is never null.
 class HeadcountStudent {
   final String rosterId;
   final String fullName;

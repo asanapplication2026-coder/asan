@@ -1,6 +1,7 @@
 import 'package:asan_evac_app/controllers/auth/auth_controller.dart';
 import 'package:asan_evac_app/models/head_count_status.dart';
 import 'package:asan_evac_app/services/drill_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,6 +11,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// writing to the dedicated `headcount_entries` table, kept separate
 /// from status_updates/current_status so student self-report there is
 /// completely unaffected.
+///
+/// Every student defaults to `missing` until a teacher marks them.
+/// On load, any roster student without a `headcount_entries` row for
+/// this drill is seeded as `missing` in the database too (see
+/// [DrillService.seedHeadcountMissing]), so the DB matches what the
+/// teacher sees.
 ///
 /// ⚠️ ADJUST: `_teacherId` assumes `AuthController.profile` the same
 /// way TeacherRosterController does.
@@ -55,12 +62,17 @@ class HeadcountController extends GetxController {
 
   /// Absent students are deliberately excluded from both sides of the
   /// ratio — "counted" only tracks students actually expected to be
-  /// physically present.
+  /// physically present. Missing is the default state, so it means
+  /// "not yet accounted for" and is NOT counted either.
   int get absentCount => students.where((s) => s.status == HeadcountStatus.absent).length;
   int get totalCount => students.length;
   int get totalExpectedCount => totalCount - absentCount;
-  int get countedCount =>
-      students.where((s) => s.status != null && s.status != HeadcountStatus.absent).length;
+  int get countedCount => students
+      .where((s) =>
+  s.status != null &&
+      s.status != HeadcountStatus.absent &&
+      s.status != HeadcountStatus.missing)
+      .length;
 
   /// `students` filtered by the current search text and selected chip.
   /// Search takes precedence: if there's search text, it searches the
@@ -119,14 +131,37 @@ class HeadcountController extends GetxController {
         drillEventId: drillEventId,
         rosterIds: roster.map((s) => s.rosterId).toList(),
       );
+
+      final unmarked = <String>[];
       for (final s in roster) {
         final row = statuses[s.rosterId];
         if (row != null) {
           s.status = row['status'] as String?;
           final updatedAtRaw = row['updated_at'] as String?;
           s.updatedAt = updatedAtRaw == null ? null : DateTime.tryParse(updatedAtRaw);
+        } else {
+          unmarked.add(s.rosterId);
+        }
+        // No saved entry yet → missing until a teacher marks them.
+        s.status ??= HeadcountStatus.missing;
+      }
+
+      // Persist the default so the DB matches what the teacher sees.
+      // Non-fatal: if it fails, the local default still displays and
+      // the next load retries. Existing rows are never overwritten.
+      if (unmarked.isNotEmpty) {
+        try {
+          await _drillService.seedHeadcountMissing(
+            drillEventId: drillEventId,
+            sectionId: sectionId,
+            rosterIds: unmarked,
+            updatedBy: _teacherId,
+          );
+        } catch (e) {
+          debugPrint('Headcount seed failed: $e');
         }
       }
+
       students.assignAll(roster);
     } catch (e) {
       errorMessage.value = 'Failed to load roster: $e';
@@ -161,7 +196,7 @@ class HeadcountController extends GetxController {
           if (rosterId == null) return;
           final index = students.indexWhere((s) => s.rosterId == rosterId);
           if (index == -1) return;
-          students[index].status = row['status'] as String?;
+          students[index].status = (row['status'] as String?) ?? HeadcountStatus.missing;
           final updatedAtRaw = row['updated_at'] as String?;
           students[index].updatedAt = updatedAtRaw == null ? null : DateTime.tryParse(updatedAtRaw);
           students.refresh();

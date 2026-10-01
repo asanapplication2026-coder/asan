@@ -18,7 +18,7 @@ class DistressSignalService {
         .order('created_at', ascending: false);
     debugPrint('[DistressSignalService] fetchSignals -> ${(rows as List).length} rows');
     return rows
-        .map((r) => DistressSignal.fromMap(r as Map<String, dynamic>))
+        .map((r) => DistressSignal.fromMap(r))
         .toList();
   }
 
